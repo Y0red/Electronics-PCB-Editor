@@ -84,7 +84,7 @@ export class SceneManager {
         requestAnimationFrame(this.animate);
 
         // Initial Setup
-        this.loadSampleData();
+        this.load100SampleData();
 
         // Helpers
         const gridHelper = new THREE.GridHelper(200, 200, 0x888888, 0x444444);
@@ -94,8 +94,64 @@ export class SceneManager {
         window.addEventListener('resize', this.onResize.bind(this));
     }
 
+    load100SampleData() {
+        // Create the board
+        this.boardBuilder.createBoard(100, 80, 1.6, 0x2e8b57);
+
+        // Generate 100 pads in a 10x10 grid with offset positions
+        const pads = [];
+        const gridSize = 10; // 10x10 = 100 pads
+        const spacingX = 8; // Spacing between pads in X direction
+        const spacingZ = 6; // Spacing between pads in Z direction
+        const startX = -36; // Starting X position (centered on board)
+        const startZ = -27; // Starting Z position (centered on board)
+
+        for (let row = 0; row < gridSize; row++) {
+            for (let col = 0; col < gridSize; col++) {
+                const index = row * gridSize + col;
+                const x = startX + col * spacingX;
+                const z = startZ + row * spacingZ;
+
+                pads.push({
+                    id: `pad-${index}`,
+                    pos: [x, 0.05, z],
+                    size: [2, 2] // 2x2 pad size
+                });
+            }
+        }
+
+        // Create all pads at once
+        this.primitivesBuilder.createPads(pads);
+
+        // Generate a trace that connects all pads in a snake pattern
+        const tracePoints = [];
+        for (let row = 0; row < gridSize; row++) {
+            if (row % 2 === 0) {
+                // Even rows: left to right
+                for (let col = 0; col < gridSize; col++) {
+                    const x = startX + col * spacingX;
+                    const z = startZ + row * spacingZ;
+                    tracePoints.push([x, z]);
+                }
+            } else {
+                // Odd rows: right to left (snake pattern)
+                for (let col = gridSize - 1; col >= 0; col--) {
+                    const x = startX + col * spacingX;
+                    const z = startZ + row * spacingZ;
+                    tracePoints.push([x, z]);
+                }
+            }
+        }
+
+        // Create the continuous trace connecting all pads
+        this.primitivesBuilder.createTraces([
+            { id: 'trace-all', points: tracePoints, width: 0.25, numericId: 1 }
+        ]);
+    }
+
+
     loadSampleData() {
-        // this.boardBuilder.createBoard(100, 80, 1.6, 0x2e8b57);
+        this.boardBuilder.createBoard(100, 80, 1.6, 0x2e8b57);
         this.primitivesBuilder.createPads([
             { id: 'pad-1', pos: [10, 0.05, 10], size: [10, 10] },
             { id: 'pad-2', pos: [-10, 0.05, -10], size: [3, 3] },
@@ -106,7 +162,6 @@ export class SceneManager {
             { id: 'trace-2', points: [[11, 11], [-11, -11]], width: 10, numericId: 2 },
         ]);
     }
-
     handleSelection(data) {
         this.transformControls.detach();
         this.selectedInstance = null;

@@ -83,57 +83,49 @@ export class PrimitivesBuilder {
 
             if (points.length < 2) return;
 
-            // Generate a path
-            const path = new THREE.Shape();
-            // Start at first point
-            // To make it a wide line rectangle:
-            const p1 = new THREE.Vector2(points[0][0], points[0][1]);
-            const p2 = new THREE.Vector2(points[1][0], points[1][1]);
+            // For multi-segment traces, create a group
+            const traceGroup = new THREE.Group();
+            traceGroup.userData = { isTrace: true, id: trace.id, data: trace };
 
-            const dir = new THREE.Vector2().subVectors(p2, p1).normalize();
-            const perp = new THREE.Vector2(-dir.y, dir.x).multiplyScalar(width / 2);
+            // Create a segment for each consecutive pair of points
+            for (let i = 0; i < points.length - 1; i++) {
+                const p1 = new THREE.Vector2(points[i][0], points[i][1]);
+                const p2 = new THREE.Vector2(points[i + 1][0], points[i + 1][1]);
 
-            // 4 corners
-            const c1 = new THREE.Vector2().addVectors(p1, perp);
-            const c2 = new THREE.Vector2().subVectors(p1, perp);
-            const c3 = new THREE.Vector2().subVectors(p2, perp);
-            const c4 = new THREE.Vector2().addVectors(p2, perp);
+                const dir = new THREE.Vector2().subVectors(p2, p1).normalize();
+                const perp = new THREE.Vector2(-dir.y, dir.x).multiplyScalar(width / 2);
 
-            const shape = new THREE.Shape();
-            shape.moveTo(c1.x, c1.y);
-            shape.lineTo(c2.x, c2.y);
-            shape.lineTo(c3.x, c3.y);
-            shape.lineTo(c4.x, c4.y);
-            shape.closePath();
+                // 4 corners for this segment
+                const c1 = new THREE.Vector2().addVectors(p1, perp);
+                const c2 = new THREE.Vector2().subVectors(p1, perp);
+                const c3 = new THREE.Vector2().subVectors(p2, perp);
+                const c4 = new THREE.Vector2().addVectors(p2, perp);
 
-            const geometry = new THREE.ShapeGeometry(shape);
-            // Rotate to lie on XZ plane
-            geometry.rotateX(Math.PI / 2);
-            // Translate Y to slightly above board or relying on polygonOffset?
-            // Shader has polygonOffset. So Y=0 is fine if board is at Y=-thickness/2 (Top at 0)
+                const shape = new THREE.Shape();
+                shape.moveTo(c1.x, c1.y);
+                shape.lineTo(c2.x, c2.y);
+                shape.lineTo(c3.x, c3.y);
+                shape.lineTo(c4.x, c4.y);
+                shape.closePath();
 
-            const mesh = new THREE.Mesh(geometry, material);
-            mesh.userData = { isTrace: true, id: trace.id, data: trace };
+                const geometry = new THREE.ShapeGeometry(shape);
+                // Rotate to lie on XZ plane
+                geometry.rotateX(-Math.PI / 2);
+                // Translate Y to slightly above board surface to prevent z-fighting
+                geometry.translate(0, 0.1, 0);
 
-            // Setup InstanceID for traces?
-            // If traces are individual meshes, we can't use 'aInstanceId' attribute easily unless we manually add it to geometry.
-            // The shader expects 'aInstanceId'.
-            // For non-instanced meshes, 'aInstanceId' attribute will be missing -> Shader might break or read 0.
-            // Solution: Add attribute to geometry with single value.
-            const count = geometry.attributes.position.count;
-            // Use a large ID or handle mapping.
-            // Let's use negative IDs or a specific offset for traces? 
-            // Or just managing IDs globally.
-            // Prompt says: "Interaction Uniforms ... uHovered and uSelected"
-            // If I hover a trace, I need to know its ID.
-            // Let's say Pads are 0..N-1. Traces are N..M.
+                const mesh = new THREE.Mesh(geometry, material);
 
-            // We need to inject aInstanceId.
-            const idVal = 10000 + (trace.numericId || 0); // Hacky ID generation
-            const ids = new Float32Array(count).fill(idVal);
-            geometry.setAttribute('aInstanceId', new THREE.BufferAttribute(ids, 1));
+                // Setup InstanceID for traces
+                const count = geometry.attributes.position.count;
+                const idVal = 10000 + (trace.numericId || 0);
+                const ids = new Float32Array(count).fill(idVal);
+                geometry.setAttribute('aInstanceId', new THREE.BufferAttribute(ids, 1));
 
-            this.tracesGroup.add(mesh);
+                traceGroup.add(mesh);
+            }
+
+            this.tracesGroup.add(traceGroup);
         });
     }
 }

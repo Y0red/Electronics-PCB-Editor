@@ -40,8 +40,6 @@ export function Sidebar({ selection, onExport, onLoad }) {
                 )}
             </div>
 
-            <hr />
-
             <div style={{ marginBottom: '20px' }}>
                 <h3>Controls</h3>
                 <button onClick={onExport} style={{ marginRight: '10px' }}>Export JSON</button>
