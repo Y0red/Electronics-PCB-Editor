@@ -2,7 +2,7 @@
 
 T# 3D PCB Viewer & Editor Walkthrough
 
-I have built a high-performance 3D PCB Editor (Demo) using React and Vanilla Three.js (no R3F).
+#High-performance 3D PCB Editor (Demo) using React and Vanilla Three.js (no R3F).
 
 ## Architecture
 - **Engine**: A `SceneManager` class encapsulates the Three.js logic (Renderer, Loop, Scene).

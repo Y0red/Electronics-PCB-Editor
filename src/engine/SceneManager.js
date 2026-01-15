@@ -34,7 +34,7 @@ export class SceneManager {
             0.1,
             1000
         );
-        this.camera.position.set(0, 50, 50);
+        this.camera.position.set(0, 80, 10);
         this.camera.lookAt(0, 0, 0);
 
         // Lights
@@ -53,7 +53,9 @@ export class SceneManager {
         // Controls
         this.transformControls = new TransformControls(this.camera, this.canvas);
         this.transformControls.addEventListener('dragging-changed', (event) => {
-            // Optional: Disable other controls if we had them
+            if (this.inputController && this.inputController.orbitControls) {
+                this.inputController.orbitControls.enabled = !event.value;
+            }
         });
         this.transformControls.showY = false; // XZ plane only
 
@@ -76,7 +78,7 @@ export class SceneManager {
         this.inputController = new InputController(this.canvas, this.camera, this.scene, (data) => {
             this.handleSelection(data);
             if (this.onSelectionChange) this.onSelectionChange(data);
-        });
+        }, this.transformControls);
 
         // Loop
         this.isRunning = true;
@@ -158,16 +160,19 @@ export class SceneManager {
             { id: 'pad-3', pos: [20, 0.05, -5], size: [4, 6] },
         ]);
         this.primitivesBuilder.createTraces([
-            { id: 'trace-1', points: [[10, 10], [-10, -10]], width: 10, numericId: 1 },
-            { id: 'trace-2', points: [[11, 11], [-11, -11]], width: 10, numericId: 2 },
+            { id: 'trace-1', points: [[10, 10], [-10, -10]], width: 1, numericId: 1 },
+            //{ id: 'trace-2', points: [[11, 11], [-11, -11]], width: 1, numericId: 2 },
         ]);
     }
+
     handleSelection(data) {
+        console.log("SceneManager: handleSelection", data);
         this.transformControls.detach();
         this.selectedInstance = null;
 
         if (!data) {
             if (this.dummy) this.scene.remove(this.dummy);
+            console.log("SceneManager: Cleared selection");
             return;
         }
 
@@ -198,6 +203,11 @@ export class SceneManager {
 
     animate() {
         if (!this.isRunning) return;
+
+        // Update input controller (for orbit controls damping)
+        if (this.inputController) {
+            this.inputController.update();
+        }
 
         // Sync Gizmo -> Instance
         if (this.selectedInstance && this.transformControls.object === this.dummy) {
